@@ -1,0 +1,52 @@
+name: release pr
+
+on:
+  push:
+    branches:
+      - develop
+      - staging
+
+# 並列実行の制御 cf. https://docs.github.com/ja/actions/using-jobs/using-concurrency
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.1
+      - name: install git-pr-release
+        run: |
+          gem install git-pr-release -N
+      - name: create pr
+        run: |
+          echo "GITHUB_REPOSITORY=${GITHUB_REPOSITORY}"
+          GITLOG=$(git log -1 --no-merges --oneline origin/staging..origin/develop | cat)
+          echo "GITLOG=${GITLOG}"
+          if [ -n "${GITLOG}" ]; then
+            echo "diff found"
+            export GIT_PR_RELEASE_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          
+            if [ "${{ github.ref_name }}" = "develop" ]; then
+              export GIT_PR_RELEASE_BRANCH_PRODUCTION=staging
+              export GIT_PR_RELEASE_TITLE="【Staging Release】 $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S')"
+            else
+              export GIT_PR_RELEASE_BRANCH_PRODUCTION=production
+              export GIT_PR_RELEASE_TITLE="【Production Release】 $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S')"
+            fi
+            
+            export GIT_PR_RELEASE_BRANCH_STAGING=${{ github.ref_name }}
+            export GIT_PR_RELEASE_TEMPLATE: .github/RELEASE_PULL_REQUEST_TEMPLATE.md
+            export DEBUG=1
+            git-pr-release --squashed
+          else
+            echo "diff not found"
+          fi
+        env:
+          TZ: Asia/Tokyo
