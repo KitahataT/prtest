@@ -36,9 +36,11 @@ jobs:
             if [ "${{ github.ref_name }}" = "develop" ]; then
               export GIT_PR_RELEASE_BRANCH_PRODUCTION=staging
               export GIT_PR_RELEASE_TITLE="【Staging Release】 $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S')"
+              echo "PR_TITLE=【STGリリース】 $(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
             else
               export GIT_PR_RELEASE_BRANCH_PRODUCTION=production
               export GIT_PR_RELEASE_TITLE="【Production Release】 $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S')"
+              echo "PR_TITLE=【PRDリリース】 $(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
             fi
             
             export GIT_PR_RELEASE_BRANCH_STAGING=${{ github.ref_name }}
